@@ -1,21 +1,20 @@
-FROM centos:latest
+FROM ubuntu:18.04
 
 MAINTAINER Justin Henderson justin@hasecuritysolutions.com
 
-RUN yum update -y
-RUN yum install -y python python-devel git gcc
-RUN curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py
-RUN python get-pip.py
-RUN cd /opt && git clone https://github.com/austin-taylor/VulnWhisperer.git
-RUN cd /opt/VulnWhisperer && pip install -r requirements.txt
-RUN cd /opt/VulnWhisperer && python setup.py install
-RUN useradd -ms /bin/bash vulnwhisperer
-RUN mkdir /var/log/vulnwhisperer
-RUN chown vulnwhisperer: /var/log/vulnwhisperer
-RUN ln -sf /dev/stderr /var/log/vulnwhisperer/vulnwhisperer.log
-RUN chown -R vulnwhisperer: /opt/VulnWhisperer
-USER vulnwhisperer
+RUN apt update \
+    && echo "debconf debconf/frontend select noninteractive" | debconf-set-selections \
+    && apt install -y build-essential python python-pip zlib1g-dev libxml2-dev libxslt1-dev git  \
+    && mkdir /opt/vulnwhisperer \
+    && cd /opt/vulnwhisperer \
+    && git clone https://github.com/HASecuritySolutions/VulnWhisperer.git . \
+    && pip install --upgrade pip setuptools \
+    && pip install -r requirements.txt \
+    && python setup.py install \
+    && echo "LC_ALL=C.UTF-8" >> /etc/profile \
+    && apt clean -y
+ENV LANG C.UTF-8
+ENV LC_ALL C.UTF-8
 
 STOPSIGNAL SIGTERM
-
-CMD  vuln_whisperer -c /opt/VulnWhisperer/frameworks_example.ini
+CMD  vuln_whisperer -c /opt/vulnwhisperer/configs/flare.ini
